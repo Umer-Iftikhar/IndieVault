@@ -17,6 +17,14 @@ try
 
     var app = builder.Build();
 
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseGlobalExceptionMiddleware();
+        app.UseHsts();
+    }
+
+    app.UseRequestLoggingMiddleware();
+
     app.MapGet("/", () => "IndieVault is up.");
 
     app.Run();
