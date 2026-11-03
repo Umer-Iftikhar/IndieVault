@@ -1,4 +1,4 @@
-using IndieVault.Web.Extensions;
+using IndieVault.Extensions;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -36,8 +36,6 @@ try
     app.UseRouting();
 
     app.UseRequestLoggingMiddleware();
-
-    app.MapGet("/", () => "IndieVault is up."); // replaced by HomeController in PR 9
 
     app.MapControllerRoute(
         name: "default",
