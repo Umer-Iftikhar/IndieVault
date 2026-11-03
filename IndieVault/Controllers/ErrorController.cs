@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace IndieVault.Web.Controllers;
+namespace IndieVault.Controllers;
 
 public class ErrorController : Controller
 {
