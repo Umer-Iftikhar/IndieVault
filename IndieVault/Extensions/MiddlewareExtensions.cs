@@ -1,6 +1,6 @@
-using IndieVault.Web.Middleware;
+using IndieVault.Middlewares;
 
-namespace IndieVault.Web.Extensions;
+namespace IndieVault.Extensions;
 
 public static class MiddlewareExtensions
 {
