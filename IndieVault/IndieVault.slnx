@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="../IndieVault.Tests/IndieVault.Tests.csproj" Id="98d4947d-f46c-4659-b040-9fccf54e3779" />
   <Project Path="IndieVault.csproj" />
 </Solution>
