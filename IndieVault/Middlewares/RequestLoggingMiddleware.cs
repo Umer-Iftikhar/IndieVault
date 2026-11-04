@@ -1,6 +1,5 @@
 namespace IndieVault.Middlewares
 {
-
 	public class RequestLoggingMiddleware(RequestDelegate next, ILogger<RequestLoggingMiddleware> logger)
 	{
 	    public async Task InvokeAsync(HttpContext context)
