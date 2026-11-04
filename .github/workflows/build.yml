@@ -10,4 +10,6 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
-      - run: dotnet build IndieVault/IndieVault.csproj
+      - run: dotnet restore IndieVault/IndieVault.slnx
+      - run: dotnet build IndieVault/IndieVault.slnx --no-restore
+      - run: dotnet test IndieVault/IndieVault.slnx --no-build --verbosity normal
