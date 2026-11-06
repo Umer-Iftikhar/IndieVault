@@ -1,4 +1,8 @@
+using IndieVault.Data;
 using IndieVault.Extensions;
+using IndieVault.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -18,6 +22,35 @@ try
 
     builder.Services.AddControllersWithViews();
 
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+    var serverVersion = new MySqlServerVersion(new Version(8, 0, 31));
+
+    builder.Services.AddDbContext<AppDbContext>
+    (
+        options => options.UseMySql(connectionString, serverVersion,
+        mySqlOptions => mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+    );
+
+    builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+    {
+        // Password settings
+        options.Password.RequireDigit = true;
+        options.Password.RequiredLength = 6;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequiredUniqueChars = 1;
+        options.User.RequireUniqueEmail = true;
+
+        // Lockout settings
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+        options.Lockout.MaxFailedAccessAttempts = 5;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
     var app = builder.Build();
 
     if (app.Environment.IsDevelopment())
@@ -35,7 +68,12 @@ try
 
     app.UseRouting();
 
+    app.UseAuthentication();
+
+    // After authentication so the logged-in user name is available in the logs
     app.UseRequestLoggingMiddleware();
+
+    app.UseAuthorization();
 
     app.MapControllerRoute(
         name: "default",
