@@ -79,6 +79,11 @@ try
     // Re-execute rather than redirect: a missing page returns a real 404, not 302 then 200
     app.UseStatusCodePagesWithReExecute("/Error/{0}");
 
+    if (app.Environment.IsDevelopment())
+    {
+        await DatabaseSeeder.SeedAsync(app.Services);
+    }
+
     app.UseRouting();
 
     app.UseAuthentication();
