@@ -1,0 +1,130 @@
+﻿@model IndieVault.ViewModels.GameEditViewModel
+
+@{
+    ViewData["Title"] = "Edit Game";
+}
+
+<main class="auth-container">
+    <section class="auth-card wide-card">
+        <h2 class="auth-title">@ViewData["Title"]</h2>
+
+        <form asp-controller="Game" asp-action="Edit" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="error-text"></div>
+            
+            <input asp-for="Id" type="hidden" />
+            <input asp-for="ExistingCoverImagePath" type="hidden" />
+
+            <div class="form-section">
+                <h4 class="section-subtitle">Basic Information</h4>
+                
+                <div class="field-group">
+                    <label asp-for="Title" class="field-label"></label>
+                    <input asp-for="Title" class="input-field" />
+                    <span asp-validation-for="Title" class="error-text"></span>
+                </div>
+
+                <div class="field-group">
+                    <label asp-for="Description" class="field-label"></label>
+                    <textarea asp-for="Description" class="input-field" rows="5"></textarea>
+                    <span asp-validation-for="Description" class="error-text"></span>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="field-group">
+                    <label class="field-label">Genre</label>
+                    <select asp-for="SelectedGenreId" class="input-field"
+                            asp-items="@(new SelectList(Model.Genres, "Id", "Name"))">
+                        <option value="">Choose Genre</option>
+                    </select>
+                    <span asp-validation-for="SelectedGenreId" class="error-text"></span>
+                </div>
+
+                <div class="field-group">
+                    <label class="field-label">Engine</label>
+                    <select asp-for="SelectedEngineId" class="input-field"
+                            asp-items="@(new SelectList(Model.Engines, "Id", "Name"))">
+                        <option value="">Choose Engine</option>
+                    </select>
+                    <span asp-validation-for="SelectedEngineId" class="error-text"></span>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <label class="field-label">Platforms</label>
+                <div class="checkbox-cloud">
+                    @foreach (var platform in Model.Platforms)
+                    {
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="SelectedPlatforms" value="@platform.Id"
+                            @(Model.SelectedPlatforms.Contains(platform.Id.ToString()) ? "checked" : "") />
+                            <span>@platform.Name</span>
+                        </label>
+                    }
+                </div>
+            </div>
+
+            <div class="form-section">
+                <label class="field-label">Tags</label>
+                <div class="checkbox-cloud">
+                    @foreach (var tag in Model.Tags)
+                    {
+                        <label class="checkbox-item">
+                            <input type="checkbox" name="SelectedTags" value="@tag.Id"
+                            @(Model.SelectedTags.Contains(tag.Id.ToString()) ? "checked" : "") />
+                            <span>@tag.Name</span>
+                        </label>
+                    }
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h4 class="section-subtitle">Media & Assets</h4>
+                <div class="form-grid">
+                    <div class="field-group">
+                        <label class="field-label">Cover Image</label>
+                        @if (!string.IsNullOrEmpty(Model.ExistingCoverImagePath))
+                        {
+                            <div class="current-media-preview">
+                                <img src="@($"{Model.ExistingCoverImagePath}?v={DateTime.UtcNow.Ticks}")" alt="Current Cover" />
+                                <p class="field-help">Current cover — upload new to replace</p>
+                            </div>
+                        }
+                        <input asp-for="CoverImage" type="file" class="file-input" />
+                    </div>
+
+                    <div class="field-group">
+                        <label asp-for="Screenshots" class="field-label">Add Screenshots</label>
+                        <input asp-for="Screenshots" type="file" class="file-input" multiple />
+                        <span asp-validation-for="Screenshots" class="error-text"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="field-group">
+                    <label asp-for="Price" class="field-label"></label>
+                    <input asp-for="Price" class="input-field" />
+                    <span asp-validation-for="Price" class="error-text"></span>
+                </div>
+
+                <div class="field-group">
+                    <label asp-for="ReleaseDate" class="field-label"></label>
+                    <input asp-for="ReleaseDate" type="date" class="input-field" />
+                    <span asp-validation-for="ReleaseDate" class="error-text"></span>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label asp-for="DownloadLink" class="field-label"></label>
+                <input asp-for="DownloadLink" class="input-field" />
+                <span asp-validation-for="DownloadLink" class="error-text"></span>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="primary-button">Update Game</button>
+                <a asp-controller="Game" asp-action="Details" asp-route-id="@Model.Id" class="outline-button text-center">Cancel Changes</a>
+            </div>
+        </form>
+    </section>
+</main>

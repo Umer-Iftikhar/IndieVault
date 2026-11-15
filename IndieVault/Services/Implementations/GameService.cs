@@ -183,5 +183,205 @@ namespace IndieVault.Services.Implementations
                 Engine = g.Engine.Name
             }).ToList();
         }
+        public async Task DeleteGameAsync(int gameId, string userId)
+        {
+            _logger.LogInformation("User {UserId} attempting to delete game {GameId}", userId, gameId);
+            // Retrieve the game from the database and ensure that it belongs to the current user before allowing deletion
+            var game = await _gameRepository.GetGameIfOwnerAsync(gameId, userId);
+            if (game == null)
+            {
+                _logger.LogWarning("Delete failed: Game {GameId} not found or user {UserId} is not owner", gameId, userId);
+                throw new InvalidOperationException("Game not found or access denied.");
+            }
+            // Delete associated screenshots from the server
+            var gameFolder = Path.Combine(_environment.WebRootPath, "images", "games", gameId.ToString());
+            if (Directory.Exists(gameFolder))
+            {
+                try
+                {
+                    Directory.Delete(gameFolder, true);
+                    _logger.LogInformation("Deleted game folder {Folder}", gameFolder);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to delete game folder for game {GameId}", gameId);
+                    // Continue to delete from DB even if folder deletion fails
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Game folder not found for deletion: {Folder}", gameFolder);
+            }
+
+            await _gameRepository.DeleteAsync(gameId); // Delete the game from the database
+            _logger.LogInformation("Game {GameId} deleted successfully by user {UserId}", gameId, userId);
+        }
+        public async Task<GameEditDto> GetGameForEditAsync(int gameId, string userId)
+        {
+            _logger.LogInformation("User {UserId} retrieving game {GameId} for edit", userId, gameId);
+            // Retrieve the game along with its related platforms and tags 
+            var game = await _gameRepository.GetGameWithPlatformsAndTagsAsync(gameId);
+
+            // Ensure the game exists and belongs to the current user before allowing access to edit
+            if (game == null)
+            {
+                _logger.LogWarning("Game {GameId} not found for edit by user {UserId}", gameId, userId);
+                throw new InvalidOperationException("Game not found.");
+            }
+            if (game.DeveloperId != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to edit game {GameId} which belongs to developer {DeveloperId}", userId, gameId, game.DeveloperId);
+                throw new UnauthorizedAccessException("You do not have permission to edit this game.");
+            }
+
+            _logger.LogInformation("Returning edit data for game {GameId}", gameId);
+            // Map the Game entity to a GameEditDto
+            return new GameEditDto
+            {
+                Id = game.Id,
+                Title = game.Title,
+                Description = game.Description,
+                Price = game.Price,
+                ReleaseDate = game.ReleaseDate,
+                CoverImagePath = game.CoverImagePath,
+                DownloadLink = game.DownloadLink,
+                SelectedGenreId = game.GenreId,
+                SelectedEngineId = game.EngineId,
+                SelectedPlatformIds = game.GamePlatforms.Select(gp => gp.PlatformId).ToList(),
+                SelectedTagIds = game.GameTags.Select(gt => gt.TagId).ToList()
+            };
+        }
+        public async Task UpdateGameAsync(GameUpdateDto updateDto, string userId)
+        {
+            _logger.LogInformation("User {UserId} updating game {GameId}", userId, updateDto.Id);
+            // Retrieve the game from the database.
+            var game = await _gameRepository.GetGameWithPlatformsAndTagsAsync(updateDto.Id);
+
+            if (game == null)
+            {
+                _logger.LogWarning("Game {GameId} not found for update by user {UserId}", updateDto.Id, userId);
+                throw new ArgumentException("Game not found.");
+            }
+            if (game.DeveloperId != userId)
+            {
+                _logger.LogWarning("User {UserId} attempted to update game {GameId} owned by {DeveloperId}", userId, updateDto.Id, game.DeveloperId);
+                throw new UnauthorizedAccessException("You do not have permission to edit this game.");
+            }
+
+            // Update basic properties
+            game.Title = updateDto.Title;
+            game.Description = updateDto.Description;
+            game.Price = updateDto.Price;
+            game.ReleaseDate = updateDto.ReleaseDate;
+            game.GenreId = updateDto.SelectedGenreId;
+            game.EngineId = updateDto.SelectedEngineId;
+            game.DownloadLink = updateDto.DownloadLink;
+            // Update platforms
+            game.GamePlatforms.Clear();
+            if (updateDto.SelectedPlatforms != null)
+            {
+                foreach (var platform in updateDto.SelectedPlatforms)
+                {
+                    game.GamePlatforms.Add(new GamePlatform { PlatformId = Convert.ToInt32(platform) });
+                }
+            }
+            // Update tags
+            game.GameTags.Clear();
+            if (updateDto.SelectedTags != null)
+            {
+                foreach (var tag in updateDto.SelectedTags)
+                {
+                    game.GameTags.Add(new GameTag { TagId = Convert.ToInt32(tag) });
+                }
+            }
+            // Handle cover image update
+            if (updateDto.CoverImage != null)
+            {
+                try
+                {
+                    var gameFolder = Path.Combine(_environment.WebRootPath, "images", "games", game.Id.ToString());
+                    if (!Directory.Exists(gameFolder))
+                    {
+                        Directory.CreateDirectory(gameFolder);
+                        _logger.LogInformation("Created directory for game images during update: {Folder}", gameFolder);
+                    }
+                    var coverExtension = Path.GetExtension(updateDto.CoverImage.FileName);
+                    var coverName = $"cover{coverExtension}";
+                    var coverPath = Path.Combine(gameFolder, coverName);
+                    using (var stream = new FileStream(coverPath, FileMode.Create))
+                    {
+                        await updateDto.CoverImage.CopyToAsync(stream);
+                    }
+                    game.CoverImagePath = $"/images/games/{game.Id}/{coverName}";
+                    _logger.LogInformation("Updated cover image for game {GameId}", game.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to update cover image for game {GameId}", game.Id);
+                    throw;
+                }
+            }
+            // Handle Screenshot update
+            if (updateDto.Screenshots != null && updateDto.Screenshots.Any())
+            {
+                try
+                {
+                    var gameFolder = Path.Combine(_environment.WebRootPath, "images", "games", game.Id.ToString());
+
+                    // 1. Remove old screenshot records from DB
+                    await _screenshotRepository.DeleteScreenshotsByGameIdAsync(game.Id);
+                    _logger.LogInformation("Deleted old screenshots records for game {GameId}", game.Id);
+
+                    // 2. Physical Cleanup: Delete old files that aren't the cover
+                    if (Directory.Exists(gameFolder))
+                    {
+                        var files = Directory.GetFiles(gameFolder, "screenshot_*");
+                        foreach (var file in files)
+                        {
+                            System.IO.File.Delete(file);
+                            _logger.LogInformation("Deleted old screenshot files for game {GameId}", game.Id);
+                        }
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(gameFolder);
+                    }
+
+                    var screenshotList = new List<Screenshot>();
+
+                    // 3. Save new files and add to DB
+                    foreach (var file in updateDto.Screenshots)
+                    {
+                        // Generate a unique file name for each screenshot to avoid conflicts
+                        var extension = Path.GetExtension(file.FileName);
+                        var fileName = $"screenshot_{Guid.NewGuid()}{extension}";
+                        var filePath = Path.Combine(gameFolder, fileName);
+
+                        // Save the new screenshot to the server
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await file.CopyToAsync(stream);
+                        }
+
+                        // Add new screenshot record to the database
+                        screenshotList.Add(new Screenshot
+                        {
+                            GameId = game.Id,
+                            ImagePath = $"/images/games/{game.Id}/{fileName}"
+                        }); ;
+                    }
+                    // Add the new screenshot to the database using the repository
+                    await _screenshotRepository.AddScreenshotsAsync(screenshotList);
+                    _logger.LogInformation("Added {Count} new screenshots for game {GameId}", screenshotList.Count, game.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to update screenshots for game {GameId}", game.Id);
+                    throw;
+                }
+            }
+            await _gameRepository.UpdateAsync(game);
+            _logger.LogInformation("Game {GameId} updated successfully by user {UserId}", game.Id, userId);
+        }
     }
 }
