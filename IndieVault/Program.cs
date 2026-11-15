@@ -3,6 +3,8 @@ using IndieVault.Extensions;
 using IndieVault.Models;
 using IndieVault.Repositories.Implementations;
 using IndieVault.Repositories.Interfaces;
+using IndieVault.Services.Implementations;
+using IndieVault.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -23,6 +25,9 @@ try
         .WriteTo.File("logs/app-.log", rollingInterval: RollingInterval.Day));
 
     builder.Services.AddControllersWithViews();
+
+    // Register services
+    builder.Services.AddScoped<IGameService, GameService>();
 
     // Register repositories
     builder.Services.AddScoped<IGenreRepository, GenreRepository>();
