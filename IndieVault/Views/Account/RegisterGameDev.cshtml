@@ -1,0 +1,42 @@
+﻿@using IndieVault.ViewModels
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Register as Game Developer";
+}
+
+<main class="auth-container">
+    <section class="auth-card">
+        <h2 class="auth-title">@ViewData["Title"]</h2>
+
+        <form asp-controller="Account" asp-action="RegisterGameDev" method="post">
+            <div asp-validation-summary="ModelOnly" class="error-text"></div>
+            
+            <div class="field-group">
+                <label asp-for="UserName" class="field-label"></label>
+                <input asp-for="UserName" class="input-field" placeholder="Username" />
+                <span asp-validation-for="UserName" class="error-text"></span>
+            </div>
+
+            <div class="field-group">
+                <label asp-for="Email" class="field-label"></label>
+                <input asp-for="Email" class="input-field" placeholder="dev@example.com" />
+                <span asp-validation-for="Email" class="error-text"></span>
+            </div>
+
+            <div class="field-group">
+                <label asp-for="Password" class="field-label"></label>
+                <input asp-for="Password" type="password" class="input-field" />
+                <span asp-validation-for="Password" class="error-text"></span>
+                <p class="field-help">Password must be at least 6 characters long and contain a mix of letters, numbers, and special characters.</p>
+            </div>
+
+            <div class="field-group">
+                <label asp-for="ConfirmPassword" class="field-label"></label>
+                <input asp-for="ConfirmPassword" type="password" class="input-field" />
+                <span asp-validation-for="ConfirmPassword" class="error-text"></span>
+            </div>
+
+            <button type="submit" class="primary-button">Register</button>
+        </form>
+    </section>
+</main>
