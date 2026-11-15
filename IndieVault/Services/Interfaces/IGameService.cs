@@ -10,5 +10,6 @@ namespace IndieVault.Services.Interfaces
         Task DeleteGameAsync(int gameId, string userId);
         Task<GameEditDto> GetGameForEditAsync(int gameId, string userId);
         Task UpdateGameAsync(GameUpdateDto updateDto, string userId);
+        Task<GameDetailDto> GetGameDetailsAsync(int gameId, string userId);
     }
 }
