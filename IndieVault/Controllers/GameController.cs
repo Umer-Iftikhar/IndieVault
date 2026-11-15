@@ -159,5 +159,16 @@ namespace IndieVault.Controllers
 
             return RedirectToAction(nameof(MyGames));
         }
+
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<IActionResult> Details(int id)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            
+            var game = await _gameService.GetGameDetailsAsync(id, userId ?? string.Empty);
+
+            return View(game);
+        }
     }
 }
