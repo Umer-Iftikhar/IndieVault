@@ -28,6 +28,7 @@ try
 
     // Register services
     builder.Services.AddScoped<IGameService, GameService>();
+    builder.Services.AddScoped<IGameBrowseService, GameBrowseService>();
 
     // Register repositories
     builder.Services.AddScoped<IGenreRepository, GenreRepository>();
@@ -39,6 +40,7 @@ try
     builder.Services.AddScoped<IReviewRepository, ReviewRepository>();
     builder.Services.AddScoped<IWishlistRepository, WishlistRepository>();
     builder.Services.AddScoped<IDownloadRepository, DownloadRepository>();
+    builder.Services.AddScoped<IGameBrowseRepository, GameBrowseRepository>();
 
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
