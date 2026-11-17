@@ -1,8 +1,174 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using IndieVault.ViewModels
+@model GameBrowseViewModel
+
+@{
+    ViewData["Title"] = "Browse Indie Games";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container py-4">
+    <div class="d-flex align-items-end justify-content-between mb-4">
+        <h1 class="fw-bold mb-0">@ViewData["Title"]</h1>
+        <p class="text-muted mb-1">Discover your next favorite indie</p>
+    </div>
+
+    @* --- Featured Games Carousel --- *@
+    @if (Model.FeaturedGames.Any() && string.IsNullOrEmpty(Model.SearchTerm) && Model.CurrentPage == 1)
+    {
+        <div id="featuredCarousel" class="carousel slide shadow-lg rounded-4 overflow-hidden mb-5" data-bs-ride="carousel" style="border: 1px solid rgba(0,0,0,0.05);">
+            <div class="carousel-indicators">
+                @for (int i = 0; i < Model.FeaturedGames.Count; i++)
+                {
+                    <button type="button" data-bs-target="#featuredCarousel" data-bs-slide-to="@i" class="@(i == 0 ? "active" : "")"></button>
+                }
+            </div>
+            <div class="carousel-inner">
+                @for (int i = 0; i < Model.FeaturedGames.Count; i++)
+                {
+                    var game = Model.FeaturedGames[i];
+                    <div class="carousel-item @(i == 0 ? "active" : "")" style="height: 480px;">
+                        <img src="@game.CoverImagePath" class="d-block w-100 h-100" style="object-fit: cover; filter: brightness(0.55);" alt="@game.Title">
+                        <div class="carousel-caption d-none d-md-block text-start p-4 mb-4 rounded-4" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); max-width: 600px; border: 1px solid rgba(255,255,255,0.2);">
+                            <span class="badge bg-warning text-dark mb-2 text-uppercase fw-bold" style="letter-spacing: 1px;">Featured Indie</span>
+                            <h1 class="display-5 fw-bold text-white">@game.Title</h1>
+                            <p class="lead text-white-50">@game.GenreName • By <strong>@game.Developer</strong></p>
+                            <div class="d-flex align-items-center gap-3">
+                                <h2 class="mb-0 text-white fw-bold">@(game.Price == 0 ? "FREE" : $"${game.Price}")</h2>
+                                <div class="text-warning border border-warning px-2 py-1 rounded small">
+                                    <i class="bi bi-star-fill"></i> @game.AverageRating.ToString("0.0")
+                                </div>
+                                <a asp-controller="Game" asp-action="Details" asp-route-id="@game.Id" class="btn btn-primary px-4 fw-bold">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            <button class="carousel-control-prev iv-nav-zone" type="button" data-bs-target="#featuredCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon iv-arrow" aria-hidden="true"></span>
+            </button>
+
+            <button class="carousel-control-next iv-nav-zone" type="button" data-bs-target="#featuredCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon iv-arrow" aria-hidden="true"></span>
+            </button>
+        </div>
+    }
+
+    @* --- Filter Section --- *@
+   <form asp-controller="Home" asp-action="Index" method="get" class="filters-container mb-4">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="filter-label">SEARCH</label>
+                <input type="text" name="searchTerm" value="@Model.SearchTerm" class="form-control" placeholder="Game title..." />
+            </div>
+
+            <div class="col-md-3">
+                <label class="filter-label">GENRE</label>
+                <select name="genreId" class="form-select">
+                    <option value="">
+                        All Genres
+                    </option>
+                    @foreach (var genre in Model.Genres)
+                    {
+                        <option value="@genre.Id" selected="@(genre.Id == Model.SelectedGenreId)">
+                            @genre.Name
+                        </option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="filter-label">PRICE RANGE</label>
+                <div class="input-group">
+                    <span class="input-group-text">
+                        $
+                    </span>
+                    <input type="number" name="minPrice" value="@Model.MinPrice" placeholder="Min" class="form-control" />
+                    <input type="number" name="maxPrice" value="@Model.MaxPrice" placeholder="Max" class="form-control" />
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="filter-label">SORT BY</label>
+                <select name="sortBy" class="form-select">
+                    <option value="Newest" selected="@(Model.SortBy == IndieVault.Enums.SortBy.Newest)">Newest</option>
+                    <option value="Rating" selected="@(Model.SortBy == IndieVault.Enums.SortBy.Rating)">Highest Rated</option>
+                    <option value="PriceAsc" selected="@(Model.SortBy == IndieVault.Enums.SortBy.PriceAsc)">Price: Low to High</option>
+                    <option value="PriceDesc" selected="@(Model.SortBy == IndieVault.Enums.SortBy.PriceDesc)">Price: High to Low</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="mt-4 pt-3">
+            <label class="filter-label d-block mb-2">PLATFORMS</label>
+            <div class="d-flex flex-wrap gap-3">
+                @foreach (var platform in Model.Platforms)
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="platformIds" value="@platform.Id" id="plat_@platform.Id"
+                        @(Model.SelectedPlatformsId.Contains(platform.Id) ? "checked" : "") />
+                        <label class="form-check-label text-muted" for="plat_@platform.Id">@platform.Name</label>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary px-4 fw-bold">Apply Filters</button>
+            <a asp-action="Index" class="btn btn-link text-muted text-decoration-none">Reset All</a>
+        </div>
+    </form>
+
+    @* --- Results Grid --- *@
+    @if (Model.Games != null && Model.Games.Any())
+    {
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+            @foreach (var game in Model.Games)
+            {
+                <div class="col">
+                @* This injects your new card design for every game *@
+                    <partial name="_GameCard" model="game" />
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="empty-state-container text-center my-5 p-5 rounded-4 border border-secondary border-opacity-25 shadow-lg">
+        <div class="mb-4">
+            <i class="bi bi-search text-info opacity-50" style="font-size: 5rem;"></i>
+        </div>
+        
+        <h3 class="fw-bold mb-3">No indies found</h3>
+        
+        <p class="text-white opacity-75 mb-4">
+            We couldn't find any games matching your current filters. <br />
+            Try adjusting your search terms or clearing the tags.
+        </p>
+
+        <a asp-action="Index" class="btn btn-outline-info px-5 rounded-pill fw-bold shadow-sm">
+            <i class="bi bi-arrow-counterclockwise me-2"></i>Reset All Filters
+        </a>
+    </div>
+    }
+
+    @* --- Pagination --- *@
+    <nav aria-label="Page navigation" class="mt-5">
+        <ul class="pagination pagination-md justify-content-center">
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link shadow-sm border-0 mx-1 rounded-3" 
+                       href="@Url.Action("Index", new { 
+                            pageNumber = i, 
+                            searchTerm = Model.SearchTerm, 
+                            genreId = Model.SelectedGenreId, 
+                            platformIds = Model.SelectedPlatformsId,
+                            minPrice = Model.MinPrice, 
+                            maxPrice = Model.MaxPrice, 
+                            sortBy = Model.SortBy 
+                       })">@i</a>
+                </li>
+            }
+        </ul>
+    </nav>
 </div>
+
