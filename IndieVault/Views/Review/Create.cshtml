@@ -1,0 +1,56 @@
+﻿@model IndieVault.ViewModels.ReviewViewModel
+
+@{
+    ViewData["Title"] = "Write a Review";
+}
+
+<main class="auth-container">
+    <section class="auth-card">
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="error-text text-center mb-3">@TempData["ErrorMessage"]</div>
+        }
+
+        <h2 class="auth-title">@ViewData["Title"]</h2>
+
+        <form asp-action="Create" method="post">
+            <input type="hidden" asp-for="GameId" />
+            
+            <div asp-validation-summary="ModelOnly" class="error-text"></div>
+
+            <div class="field-group">
+                <label class="field-label text-center d-block">How would you rate your experience?</label>
+                <div class="star-rating">
+                    @for (int i = 5; i >= 1; i--)
+                    {
+                        <input type="radio" id="star-@i" asp-for="Rating" value="@i" />
+                        <label for="star-@i" title="@i stars">
+                            <i class="bi bi-star-fill"></i>
+                        </label>
+                    }
+                </div>
+                <div class="text-center">
+                    <span asp-validation-for="Rating" class="error-text"></span>
+                </div>
+            </div>
+
+            <div class="field-group">
+                <label asp-for="Comment" class="field-label">Tell us more (Optional)</label>
+                <textarea asp-for="Comment" class="input-field" rows="4" placeholder="What stood out to you?"></textarea>
+                <span asp-validation-for="Comment" class="error-text"></span>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="primary-button">Post Review</button>
+                <a asp-controller="Game" asp-action="Details" asp-route-id="@Model.GameId" class="outline-button text-center">Go Back</a>
+            </div>
+        </form>
+    </section>
+</main>
+
+@section Scripts
+{
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

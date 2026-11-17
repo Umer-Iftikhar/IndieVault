@@ -29,6 +29,7 @@ try
     // Register services
     builder.Services.AddScoped<IGameService, GameService>();
     builder.Services.AddScoped<IGameBrowseService, GameBrowseService>();
+    builder.Services.AddScoped<IReviewService, ReviewService>();
 
     // Register repositories
     builder.Services.AddScoped<IGenreRepository, GenreRepository>();
