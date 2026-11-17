@@ -383,5 +383,51 @@ namespace IndieVault.Services.Implementations
             await _gameRepository.UpdateAsync(game);
             _logger.LogInformation("Game {GameId} updated successfully by user {UserId}", game.Id, userId);
         }
+        public async Task<GameDetailDto> GetGameDetailsAsync(int gameId, string userId)
+        {
+            _logger.LogInformation("Fetching details for game {GameId}, user {UserId}", gameId, userId);
+            // Retrieve the game along with all its related data using the game repository
+            var game = await _gameRepository.GetGameWithDetailsAsync(gameId);
+
+            if (game == null)
+            {
+                _logger.LogWarning("Game {GameId} not found when requesting details", gameId);
+                throw new ArgumentException("Game not found.");
+            }
+
+            return new GameDetailDto // Map the Game entity to GameDetailDto, including related data and user-specific info
+            {
+                GameId = game.Id,
+                Title = game.Title,
+                Description = game.Description,
+                DeveloperName = game.Developer.UserName!,
+                DeveloperId = game.DeveloperId,
+                Price = game.Price,
+                ReleaseDate = game.ReleaseDate,
+                GenreName = game.Genre.Name,
+                EngineName = game.Engine.Name,
+                PlatformNames = game.GamePlatforms.Select(gp => gp.Platform.Name).ToList(),
+                CoverImagePath = game.CoverImagePath,
+                DownloadLink = game.DownloadLink,
+                Tags = game.GameTags.Select(gt => gt.Tag.Name).ToList(),
+                Screenshots = game.Screenshots.Select(s => new ScreenshotDto // Map Screenshot entity to ScreenshotDto
+                {
+                    ImagePath = s.ImagePath
+                }).ToList(),
+                Reviews = game.Reviews.Select(r => new ReviewDto // Include reviewer name by accessing the User navigation property
+                {
+                    Id = r.Id,
+                    UserId = r.UserId,
+                    ReviewerName = r.User.UserName!,
+                    Rating = r.Rating,
+                    Comment = r.Comment,
+                    ReviewDate = r.ReviewDate
+                }).ToList(),
+
+                // Check if the current user has wishlisted or reviewed the game using the respective repositories
+                HasWishlisted = await _wishlistRepository.WishlistExistsAsync(userId, gameId),
+                HasReviewed = await _reviewRepository.ReviewExistsAsync(userId, gameId)
+            };
+        }
     }
 }
