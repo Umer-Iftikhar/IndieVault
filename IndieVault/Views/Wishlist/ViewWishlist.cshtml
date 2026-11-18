@@ -1,0 +1,104 @@
+﻿@model List<IndieVault.DTOs.WishlistItemDto>
+
+@{
+    ViewData["Title"] = "My Wishlist";
+}
+
+<main class="wishlist-container">
+    <h1 class="page-title">@ViewData["Title"]</h1>
+
+    @if (!Model.Any())
+    {
+        <div class="empty-state-alert">
+            <i class="bi bi-heartbreak"></i>
+            <p>Your wishlist is empty.</p>
+        </div>
+    }
+    else
+    {
+        <section class="wishlist-list">
+            @foreach (var item in Model)
+            {
+                <div class="wishlist-item" data-row-id="@item.GameId">
+                    <div class="item-cover">
+                        <img src="@item.CoverImagePath" alt="@item.Title" />
+                    </div>
+                    
+                    <div class="item-details">
+                        <h3 class="item-title">
+                            <a asp-controller="Game" asp-action="Details" asp-route-id="@item.GameId">@item.Title</a>
+                        </h3>
+                        <span class="item-genre">
+                            <i class="bi bi-controller"></i> @item.GameGenre
+                        </span>
+                        <p class="item-date">Added on @item.CreatedDate.ToShortDateString()</p>
+                    </div>
+                    
+                    <div class="item-price">
+                        <span class="price-tag">@(item.Price == 0 ? "Free" : $"${item.Price}")</span>
+                    </div>
+                    
+                    <div class="item-actions">
+                        <button type="button" class="remove-btn-icon" data-game-id="@item.GameId" title="Remove">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            }
+        </section>
+    }
+</main>
+
+@Html.AntiForgeryToken()
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const removeButtons = document.querySelectorAll('.remove-btn-icon');
+
+        removeButtons.forEach(btn => {
+            btn.addEventListener('click', async function () {
+                if (!confirm("Remove this game from your wishlist?")) return;
+
+                btn.disabled = true;
+
+                try {
+                    const gameId = btn.dataset.gameId;
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                    const response = await fetch('/Wishlist/Remove', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify({ gameId: parseInt(gameId) })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.success) {
+                        const item = btn.closest('.wishlist-item');
+                        item.style.opacity = '0';
+                        item.style.transform = 'translateX(20px)';
+                        item.style.transition = 'all 0.3s ease';
+                    
+                        setTimeout(() => {
+                            item.remove();
+                            const remainingItems = document.querySelectorAll('.wishlist-item');
+                            if (remainingItems.length === 0) {
+                                location.reload();
+                            }
+                        }, 300);
+
+                    } else {
+                        alert(result.message || "Failed to remove item.");
+                        btn.disabled = false;
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    btn.disabled = false;
+                }
+            });
+        });
+    });
+</script>
