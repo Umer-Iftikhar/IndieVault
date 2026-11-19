@@ -30,6 +30,7 @@ try
     builder.Services.AddScoped<IGameService, GameService>();
     builder.Services.AddScoped<IGameBrowseService, GameBrowseService>();
     builder.Services.AddScoped<IReviewService, ReviewService>();
+    builder.Services.AddScoped<IWishlistService, WishlistService>();
 
     // Register repositories
     builder.Services.AddScoped<IGenreRepository, GenreRepository>();
