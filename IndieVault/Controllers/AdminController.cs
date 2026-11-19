@@ -37,6 +37,65 @@ namespace IndieVault.Controllers
             return View(adminDashboardViewModel);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> CreateGenre()
+        {
+            var model = new GenreViewModel();
+            return View(model);
+        }
+        [HttpPost]
+        public async Task<IActionResult> CreateGenre(GenreViewModel model)
+        {
+            
+            if(!ModelState.IsValid)
+            {
+                return View(model);
+            }
+            try
+            {
+                await _adminService.AdminCreateGenreAsync(model.GenreName);
+
+            }
+            catch (InvalidOperationException ex)
+            {
+                ModelState.AddModelError(string.Empty, $"An error occurred while creating the genre: {ex.Message}");
+                return View(model);
+            }
+
+            return RedirectToAction(nameof(Dashboard));
+        }
+        [HttpGet]
+        public async Task<IActionResult> GenreDelete(int genreId)
+        {
+            var genre = await _adminService.GetGenreByIdAsync(genreId);
+            var model = new GenreViewModel
+            {
+                GenreId = genre.Id,
+                GenreName = genre.Name
+            };
+            return View(model);
+        }
+        [HttpPost]
+        public async Task<IActionResult> GenreDelete(GenreViewModel model)
+        {
+            if(!ModelState.IsValid)
+            {
+                return View(model);
+            }
+            try
+            {
+                await _adminService.AdminDeleteGenreAsync(model.GenreId);
+
+            }
+            catch (InvalidOperationException ex)
+            {
+                model.Message = ex.Message;
+                return View(model);
+            }
+
+            return RedirectToAction(nameof(Dashboard));
+            
+        }
         [HttpPost]
         public async Task<IActionResult> ToggleFeature(int gameId)
         {
