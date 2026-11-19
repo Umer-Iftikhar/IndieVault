@@ -1,0 +1,218 @@
+﻿@model IndieVault.ViewModels.AdminDashboardViewModel
+
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="dashboard-wrapper">
+    @* Header Section *@
+    <div class="dashboard-header border-0 mb-4">
+        <div>
+            <h2 class="dashboard-title"><i class="bi bi-shield-lock-fill text-primary me-2"></i>@ViewData["Title"]</h2>
+            <p class="text-muted mb-0">System overview for <strong>@Model.AdminName</strong></p>
+        </div>
+    </div>
+
+    @{
+        var successMessage = TempData["Message"] as string;
+        var errorMessage = TempData["Error"] as string;
+    }
+
+    
+    @* Stats Row *@
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stats-card">
+                <span class="stats-label">Total Games</span>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <h2 class="stats-value mb-0">@Model.TotalGames</h2>
+                    <i class="bi bi-controller stats-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card">
+                <span class="stats-label">Total Reviews</span>
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <h2 class="stats-value mb-0">@Model.TotalReviews</h2>
+                    <i class="bi bi-chat-square-quote stats-icon"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stats-card highlight">
+                <span class="stats-label text-info">Most Wishlisted</span>
+                <div class="d-flex align-items-center justify-content-between mt-1">
+                    <div>
+                        <h4 class="text-white mb-0">@(Model.MostWishlistedGames?.Title ?? "No Data")</h4>
+                        <span class="text-accent small"><i class="bi bi-heart-fill"></i> @Model.MostWishlistedGames?.WishlistCount Saves</span>
+                    </div>
+                    <i class="bi bi-trophy text-warning display-5"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <div class="Sync-game-buttom">
+            <form asp-controller="Admin" asp-action="SyncGames" method="post">
+                <button type="submit" class="primary-button btn-small">
+                    <i class="bi bi-arrow-repeat me-1"></i> Sync Games
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        @* User Distribution *@
+        <div class="col-lg-4">
+            <div class="admin-panel">
+                <div class="admin-panel-header">
+                    <h5><i class="bi bi-people me-2"></i>User Distribution</h5>
+                </div>
+                <div class="admin-panel-body p-0">
+                    <ul class="list-group list-group-flush bg-transparent">
+                        @foreach (var role in Model.UsersByRole)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center py-3 bg-transparent border-secondary border-opacity-10 text-white">
+                                <span>@role.RoleName</span>
+                                <span class="badge-dark">@role.UserCount Users</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        @* Genre Management *@
+        <div class="col-lg-8">
+            <div class="admin-panel">
+                <div class="admin-panel-header d-flex justify-content-between align-items-center">
+                    <h5><i class="bi bi-tags me-2"></i>Genre Management</h5>
+                    <a asp-controller="Admin" asp-action="CreateGenre" class="primary-button btn-small">New Genre</a>
+                </div>
+                <div class="table-responsive" style="max-height: 300px;">
+                    <table class="dashboard-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Genre Name</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var genre in Model.Genres)
+                            {
+                                <tr>
+                                    <td class="fw-bold text-white">@genre.Name</td>
+                                    <td class="text-end">
+                                        @* Action changed to GenreDelete to match Controller *@
+                                        <a asp-controller="Admin" asp-action="GenreDelete" asp-route-genreId="@genre.Id" class="action-link danger">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @* Featured Games Section *@
+        <div class="col-12">
+            <div class="admin-panel">
+                <div class="admin-panel-header">
+                    <h5><i class="bi bi-star me-2"></i>Feature/Unfeature Games</h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="dashboard-table">
+                        <thead>
+                            <tr>
+                                <th>Game Title</th>
+                                <th>Status</th>
+                                <th class="text-center">Toggle Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var game in Model.Games)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-white">@game.Title</div>
+                                        <small class="text-muted">#@game.Id</small>
+                                    </td>
+                                    <td>
+                                        @if (game.IsFeatured)
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-lightning-fill"></i> Featured</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge-dark text-muted">Standard</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @* Standard POST form instead of AJAX to match controller's return RedirectToAction *@
+                                        <form asp-controller="Admin" asp-action="ToggleFeature" method="post" style="display:inline;">
+                                            <input type="hidden" name="gameId" value="@game.Id" />
+                                            <button type="submit" class="feature-toggle-btn @(game.IsFeatured ? "unfeature" : "feature")">
+                                                @(game.IsFeatured ? "Unfeature" : "Feature")
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+    <div id="appToast" class="toast align-items-center text-white border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage">
+                Message here
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const success = @Html.Raw(Json.Serialize(successMessage));
+            const error = @Html.Raw(Json.Serialize(errorMessage));
+
+            let message = null;
+            let isError = false;
+
+            if (success) {
+                message = success;
+            }
+            else if (error) {
+                message = error;
+                isError = true;
+            }
+
+            if (!message) return;
+
+            const toastEl = document.getElementById("appToast");
+            const toastBody = document.getElementById("toastMessage");
+
+            toastEl.classList.remove("bg-success", "bg-danger");
+            toastEl.classList.add(isError ? "bg-danger" : "bg-success");
+
+            toastBody.textContent = message;
+
+            const toast = new bootstrap.Toast(toastEl, {
+                delay: isError ? 7000 : 4000
+            });
+
+            toast.show();
+        });
+    </script>
+}
