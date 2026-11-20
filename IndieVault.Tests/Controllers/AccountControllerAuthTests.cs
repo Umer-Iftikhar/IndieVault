@@ -1,5 +1,7 @@
 using IndieVault.Controllers;
 using IndieVault.Models;
+using IndieVault.Services.Interfaces;
+using IndieVault.Services.Interfaces.ExternalApis;
 using IndieVault.Tests.TestHelpers;
 using IndieVault.ViewModels;
 using Microsoft.AspNetCore.Identity;
@@ -19,7 +21,8 @@ namespace IndieVault.Tests.Controllers
         {
             _userManager = IdentityMocks.UserManager();
             _signInManager = IdentityMocks.SignInManager(_userManager.Object);
-            _controller = new AccountController(_userManager.Object, _signInManager.Object)
+            _controller = new AccountController(_userManager.Object, _signInManager.Object,
+                Mock.Of<IGitHubService>(), Mock.Of<IGameService>())
             {
                 ControllerContext = IdentityMocks.ControllerContextFor(IdentityMocks.User())
             };

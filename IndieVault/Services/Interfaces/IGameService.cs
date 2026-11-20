@@ -11,5 +11,8 @@ namespace IndieVault.Services.Interfaces
         Task<GameEditDto> GetGameForEditAsync(int gameId, string userId);
         Task UpdateGameAsync(GameUpdateDto updateDto, string userId);
         Task<GameDetailDto> GetGameDetailsAsync(int gameId, string userId);
+
+        // method to get count of all the games of a particular developer (account controller)
+        Task<int> GetDevGameCountAsync(string userId);
     }
 }

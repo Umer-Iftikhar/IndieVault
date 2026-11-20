@@ -429,5 +429,13 @@ namespace IndieVault.Services.Implementations
                 HasReviewed = await _reviewRepository.ReviewExistsAsync(userId, gameId)
             };
         }
+
+        public async Task<int> GetDevGameCountAsync(string userId)
+        {
+            _logger.LogInformation("Getting game count for developer {UserId}", userId);
+            var count = await _gameRepository.GetGameCountByDevIdAsync(userId);
+            _logger.LogInformation("Developer {UserId} has {Count} games", userId, count);
+            return count;
+        }
     }
 }
