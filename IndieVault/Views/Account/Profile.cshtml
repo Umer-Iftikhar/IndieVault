@@ -1,0 +1,101 @@
+﻿@using System.Security.Claims
+@model IndieVault.ViewModels.DevProfileViewModel
+@{
+    ViewData["Title"] = "Developer Profile";
+}
+
+<div class="profile-page-wrapper">
+    <div class="profile-grid">
+        @* User Basic Info Card *@
+
+        <aside class="info-sidebar">
+            <div class="profile-card">
+                <div class="profile-card-content">
+                    @{
+                        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                        var isOwner = currentUserId == Model.UserId;
+                    }
+
+                    <h2 class="profile-name">@Model.Name</h2>
+                    <p class="profile-email">@Model.Email</p>
+            
+                    <hr class="divider" />
+
+                    <div class="stats-row">
+                        <div class="stat-item">
+                            <h6>Joined</h6>
+                            <p>@Model.JoinDate.ToString("MMM yyyy")</p>
+                        </div>
+                        <div class="stat-item">
+                            <h6>Games</h6>
+                            <span class="custom-badge-primary">@Model.TotalGames</span>
+                        </div>
+                    </div>
+
+                    @if (isOwner)
+                    {
+                        <div class="edit-button-wrapper">
+                            <a asp-controller="Account" asp-action="EditProfile" class="outline-button">
+                                <i class="bi bi-person-gear"></i> Edit Profile
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </aside>
+        </aside>
+
+        @* GitHub Section *@
+        <main class="content-area">
+            @if (Model.GitHubProfile != null)
+            {
+                <section class="github-card">
+                    <header class="github-header">
+                        <h4 class="header-title">GitHub Integration</h4>
+                        <a href="@Model.GitHubProfile.ProfileUrl" target="_blank" class="outline-button">
+                            View on GitHub
+                        </a>
+                    </header>
+                    <div class="github-body">
+                        <div class="repo-stats-grid">
+                            <div class="repo-stat border-right">
+                                <span class="stat-label">Public Repos</span>
+                                <span class="stat-value">@Model.GitHubProfile.PublicRepos</span>
+                            </div>
+                            <div class="repo-stat">
+                                <span class="stat-label">Total Stars</span>
+                                <span class="stat-value text-warning">
+                                    <i class="bi bi-star-fill"></i> @Model.GitHubProfile.TotalStars
+                                </span>
+                            </div>
+                        </div>
+
+                        <hr class="divider" />
+
+                        <h6 class="section-subtitle">Top Languages</h6>
+                        <div class="tag-cloud">
+                            @if (Model.GitHubProfile?.TopLanguages != null && Model.GitHubProfile.TopLanguages.Any())
+                            {
+                                @foreach (var lang in Model.GitHubProfile.TopLanguages)
+                                {
+                                    <span class="custom-badge-info">@lang</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">No languages detected.</span>
+                            }
+                        </div>
+                    </div>
+                </section>
+            }
+            else
+            {
+                <div class="empty-state-alert">
+                    <h5>GitHub Not Linked</h5>
+                    <p>This developer hasn't connected their GitHub account to IndieVault yet.</p>
+                </div>
+            }
+        </main>
+    </div>
+</div>
