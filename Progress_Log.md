@@ -41,6 +41,7 @@ This log is generated directly from the repository's merge history (`github.com/
 | 2026-11-19 | #28 | Admin dashboard and featured-games toggle | Qasim Abdul Qadeer Khan |
 | 2026-11-20 | #29 | Admin genre management | Umer Iftikhar |
 | 2026-11-20 | #30 | Developer profile with GitHub integration and profile editing | Qasim Abdul Qadeer Khan |
+| 2026-11-23 | #31 | Download history tracking | Umer Iftikhar
 
 **27 numbered pull requests merged** (#3–#30, with #1 and #2 unaccounted for — see Notes) **plus one direct, unnumbered commit** (the initial logging/error-handling work), spanning 2026-10-12 to 2026-11-20. This includes two revert-and-redo cycles: one on the game edit/delete feature (#15 → #16 revert → #20 redo) and one on the game details page (#21 → #22 revert → #23 redo).
 
