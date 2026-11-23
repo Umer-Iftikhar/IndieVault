@@ -1,6 +1,7 @@
 using IndieVault.Controllers;
 using IndieVault.DTOs;
 using IndieVault.Services.Interfaces;
+using IndieVault.Services.Interfaces.ExternalApis;
 using IndieVault.Tests.TestHelpers;
 using IndieVault.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,7 @@ namespace IndieVault.Tests.Controllers
 
         public AdminControllerGenreTests()
         {
-            _controller = new AdminController(_service.Object, NullLogger<AdminController>.Instance)
+            _controller = new AdminController(_service.Object, Mock.Of<IRawgApiService>(), NullLogger<AdminController>.Instance)
             {
                 ControllerContext = IdentityMocks.ControllerContextFor(IdentityMocks.User("admin-1", "admin", "Admin"))
             };

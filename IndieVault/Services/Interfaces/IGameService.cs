@@ -14,5 +14,8 @@ namespace IndieVault.Services.Interfaces
 
         // method to get count of all the games of a particular developer (account controller)
         Task<int> GetDevGameCountAsync(string userId);
+
+        // method to check if a game exists by title or external ID (RawgApiService)
+        Task<bool> CreateGameFromApiAsync(RawgGameUploadDto dto);
     }
 }

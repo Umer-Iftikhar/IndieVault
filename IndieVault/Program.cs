@@ -42,6 +42,12 @@ try
         httpClient.DefaultRequestHeaders.Add("User-Agent", "IndieVault");
     });
 
+    builder.Services.AddHttpClient<IRawgApiService, RawgApiService>(httpClient =>
+    {
+        httpClient.BaseAddress = new Uri("https://api.rawg.io/api/");
+        httpClient.DefaultRequestHeaders.Add("User-Agent", "IndieVault");
+    });
+
     // Register repositories
     builder.Services.AddScoped<IGenreRepository, GenreRepository>();
     builder.Services.AddScoped<ITagRepository, TagRepository>();
