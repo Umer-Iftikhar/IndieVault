@@ -28,6 +28,10 @@ try
 
     builder.Services.AddControllersWithViews();
 
+    // Cache for AI recommendations and per-user rate limiting for the AI refresh action
+    builder.Services.AddMemoryCache();
+    builder.Services.AddAiRateLimiting();
+
     // Register services
     builder.Services.AddScoped<IGameService, GameService>();
     builder.Services.AddScoped<IGameBrowseService, GameBrowseService>();
@@ -35,6 +39,7 @@ try
     builder.Services.AddScoped<IWishlistService, WishlistService>();
     builder.Services.AddScoped<IDownloadService, DownloadService>();
     builder.Services.AddScoped<IAdminService, AdminService>();
+    builder.Services.AddScoped<IRecommendationService, RecommendationService>();
 
     builder.Services.AddHttpClient<IGitHubService, GitHubService>(httpClient =>
     {
@@ -46,6 +51,13 @@ try
     {
         httpClient.BaseAddress = new Uri("https://api.rawg.io/api/");
         httpClient.DefaultRequestHeaders.Add("User-Agent", "IndieVault");
+    });
+
+    builder.Services.AddHttpClient<IGeminiService, GeminiService>(httpClient =>
+    {
+        httpClient.BaseAddress = new Uri("https://generativelanguage.googleapis.com/v1beta/");
+        // If Gemini is slow, give up and show rule-based recommendations instead
+        httpClient.Timeout = TimeSpan.FromSeconds(20);
     });
 
     // Register repositories
@@ -60,6 +72,7 @@ try
     builder.Services.AddScoped<IDownloadRepository, DownloadRepository>();
     builder.Services.AddScoped<IGameBrowseRepository, GameBrowseRepository>();
     builder.Services.AddScoped<IAdminStatisticsRepository, AdminStatisticsRepository>();
+    builder.Services.AddScoped<IRecommendationRepository, RecommendationRepository>();
 
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -118,6 +131,9 @@ try
     app.UseRequestLoggingMiddleware();
 
     app.UseAuthorization();
+
+    // After authentication so each signed-in user gets their own limit
+    app.UseRateLimiter();
 
     app.MapStaticAssets();
 
