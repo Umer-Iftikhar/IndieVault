@@ -10,6 +10,10 @@ public class ErrorController : Controller
 
     // Re-executed for 4xx/5xx responses, so the original status code is kept
     [Route("/Error/{statusCode:int}")]
-    public IActionResult StatusCodePage(int statusCode)
-        => statusCode == StatusCodes.Status404NotFound ? View("Error404") : View("Error");
+    public IActionResult StatusCodePage(int statusCode) => statusCode switch
+    {
+        StatusCodes.Status404NotFound => View("Error404"),
+        StatusCodes.Status429TooManyRequests => View("Error429"), // rate limiter rejections
+        _ => View("Error")
+    };
 }

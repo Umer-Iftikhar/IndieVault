@@ -1,0 +1,13 @@
+@{
+    ViewData["Title"] = "Too Many Requests";
+}
+
+<div class="text-center mt-5">
+    <h1 class="display-1 fw-bold">429</h1>
+    <h2 class="mb-4">Slow down a little</h2>
+    <p class="mb-5">
+        You have refreshed your recommendations too many times.
+        Please wait a few minutes and try again.
+    </p>
+    <a asp-controller="Recommendation" asp-action="Index" class="btn btn-primary">Back to Recommendations</a>
+</div>
