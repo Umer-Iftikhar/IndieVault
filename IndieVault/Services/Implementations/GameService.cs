@@ -437,5 +437,43 @@ namespace IndieVault.Services.Implementations
             _logger.LogInformation("Developer {UserId} has {Count} games", userId, count);
             return count;
         }
+
+        // /<summary>
+        /// Creates a new game in the database using data from an external API (e.g., RAWG) represented by the RawgGameUploadDto.
+        /// This method is used to import games from an external source and save them in the local database.
+        /// /<summary>
+        public async Task<bool> CreateGameFromApiAsync(RawgGameUploadDto dto)
+        {
+            _logger.LogInformation("Creating game from API data. Title: {Title}, ExternalApiSource: {Source}", dto.Title, dto.ExternalApiSource);
+            try
+            {
+                // Create a new Game entity and populate its properties with data from the RawgGameUploadDto
+                var game = new Game
+                {
+                    Title = dto.Title,
+                    Description = dto.Description,
+                    Price = dto.Price,
+                    ReleaseDate = dto.ReleaseDate ?? DateTime.UtcNow,
+                    GenreId = dto.GenreId,
+                    EngineId = dto.EngineId,
+                    DeveloperId = dto.DeveloperId,
+                    CreatedDate = DateTime.UtcNow,
+                    CoverImagePath = dto.CoverImagePath,
+                    DownloadLink = dto.DownloadLink,
+                    ExternalApiId = dto.ExternalApiId,
+                    ExternalApiSource = dto.ExternalApiSource,
+                    IsFromExternalApi = dto.IsFromExternalApi
+                };
+                await _gameRepository.CreateAsync(game); // Save the new game to the database
+                _logger.LogInformation("Successfully created game from API. GameId: {GameId}, Title: {Title}", game.Id, game.Title);
+                return true; // Indicate that the game was successfully created
+            }
+            catch (Exception ex)
+            {
+                // Log the exception 
+                _logger.LogError(ex, "Error creating game from API: {Title}, ExternalApiId: {ExternalApiId}", dto.Title, dto.ExternalApiId);
+                return false; // Indicate that there was an error creating the game
+            }
+        }
     }
 }
