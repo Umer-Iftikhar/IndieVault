@@ -34,7 +34,7 @@
             <div class="iv-card-price fw-bold text-info fs-5">
                 @(Model.Price == 0 ? "FREE" : $"${Model.Price}")
             </div>
-            <a asp-controller="Game" asp-action="Details" asp-route-id="@Model.Id"
+            <a asp-area="" asp-controller="Game" asp-action="Details" asp-route-id="@Model.Id"
                    class="btn btn-sm btn-dark px-3 rounded-pill fw-bold iv-btn-details">
                 Details
             </a>

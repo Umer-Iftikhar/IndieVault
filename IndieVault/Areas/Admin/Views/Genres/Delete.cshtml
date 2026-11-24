@@ -1,4 +1,4 @@
-﻿@model IndieVault.ViewModels.GenreViewModel
+@model IndieVault.ViewModels.GenreViewModel
 
 @{
     ViewData["Title"] = "Delete Genre";
@@ -15,7 +15,7 @@
                     </h5>
                 </div>
                 <div class="admin-panel-body p-4">
-                    
+
                     @* Error Alert - styled to match your dark theme *@
                     @if (!string.IsNullOrEmpty(Model.Message))
                     {
@@ -28,20 +28,20 @@
                     <p class="text-white fs-5">
                         Are you sure you want to delete the genre: <strong class="text-danger">@Model.GenreName</strong>?
                     </p>
-                    
+
                     <div class="info-note mb-4">
                         <i class="bi bi-info-circle me-1"></i> This action cannot be undone.
                     </div>
 
-                    <form asp-controller="Admin" asp-action="GenreDelete" method="post">
+                    <form asp-action="Delete" method="post">
                         <input type="hidden" asp-for="GenreId" />
                         <input type="hidden" asp-for="GenreName" />
 
                         <div class="d-flex justify-content-between align-items-center mt-5">
-                            <a asp-action="Dashboard" class="text-muted text-decoration-none hover-white">
+                            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="text-muted text-decoration-none hover-white">
                                 <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
                             </a>
-                            
+
                             <button type="submit"
                                     class="primary-button bg-danger border-danger @(string.IsNullOrEmpty(Model.Message) ? "" : "disabled-btn")"
                                 @(string.IsNullOrEmpty(Model.Message) ? "" : "disabled")>

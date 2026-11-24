@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
 <head>
     <meta charset="utf-8" />
@@ -34,7 +34,7 @@
                             @if (User.IsInRole("Admin"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link text-primary fw-bold" asp-controller="Admin" asp-action="Dashboard">
+                                    <a class="nav-link text-primary fw-bold" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
                                         <i class="bi bi-shield-lock me-1"></i>Admin Dashboard
                                     </a>
                                 </li>
@@ -42,21 +42,26 @@
                             @if(User.IsInRole("Player"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Wishlist" asp-action="ViewWishlist">My Wishlist</a>
+                                    <a class="nav-link" asp-area="" asp-controller="Wishlist" asp-action="ViewWishlist">My Wishlist</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Recommendation" asp-action="Index">
+                                        <i class="bi bi-stars me-1"></i>For You
+                                    </a>
                                 </li>
                             }
                             @if(User.IsInRole("GameDev"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Game" asp-action="MyGames">My Games</a>
+                                    <a class="nav-link" asp-area="" asp-controller="Game" asp-action="MyGames">My Games</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" asp-controller="Account" asp-action="Profile" asp-route-userId="@User.FindFirstValue(ClaimTypes.NameIdentifier)">My Profile</a>
+                                    <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Profile" asp-route-userId="@User.FindFirstValue(ClaimTypes.NameIdentifier)">My Profile</a>
                                 </li>
                             }
 
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Download" asp-action="MyDownloads">
+                                <a class="nav-link" asp-area="" asp-controller="Download" asp-action="MyDownloads">
                                     <i class="bi bi-download me-1"></i>My Downloads
                                 </a>
                             </li>
@@ -64,9 +69,9 @@
                             <li class="nav-item">
                                 <span class="nav-link">Hello, @User.Identity.Name!</span>
                             </li>
-                            
+
                             <li class="nav-item">
-                                <form asp-controller="Account" asp-action="Logout" method="post" class="form-inline">
+                                <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="form-inline">
                                     <button type="submit" class="nav-link btn btn-link" >
                                         Logout
                                     </button>
@@ -76,13 +81,13 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="RegisterPlayer">Player Register</a>
+                                <a class="nav-link" asp-area="" asp-controller="Account" asp-action="RegisterPlayer">Player Register</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="RegisterGameDev">Developer Register</a>
+                                <a class="nav-link" asp-area="" asp-controller="Account" asp-action="RegisterGameDev">Developer Register</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login">Login</a>
+                                <a class="nav-link" asp-area="" asp-controller="Account" asp-action="Login">Login</a>
                             </li>
                         }
                     </ul>
