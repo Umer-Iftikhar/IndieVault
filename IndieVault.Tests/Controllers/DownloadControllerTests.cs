@@ -22,7 +22,7 @@ namespace IndieVault.Tests.Controllers
         {
             _service.Setup(s => s.DownloadGameAsync(3, "player-1")).ReturnsAsync("https://example.com/game.zip");
 
-            var result = await Controller("player-1").Download(3);
+            var result = await Controller("player-1").Download(3, CancellationToken.None);
 
             Assert.Equal("https://example.com/game.zip", Assert.IsType<RedirectResult>(result).Url);
         }
@@ -33,7 +33,7 @@ namespace IndieVault.Tests.Controllers
             var history = new List<DownloadHistoryDto> { new() { GameId = 3, GameName = "Celeste" } };
             _service.Setup(s => s.GetDownloadHistoryAsync("player-1")).ReturnsAsync(history);
 
-            var result = await Controller("player-1").MyDownloads();
+            var result = await Controller("player-1").MyDownloads(CancellationToken.None);
 
             Assert.Same(history, Assert.IsType<ViewResult>(result).Model);
         }
@@ -41,7 +41,7 @@ namespace IndieVault.Tests.Controllers
         [Fact]
         public async Task MyDownloads_NoUserId_ReturnsUnauthorized()
         {
-            var result = await Controller(null).MyDownloads();
+            var result = await Controller(null).MyDownloads(CancellationToken.None);
 
             Assert.IsType<UnauthorizedResult>(result);
         }

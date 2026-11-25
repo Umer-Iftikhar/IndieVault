@@ -1,9 +1,12 @@
-﻿using IndieVault.DTOs;
+using IndieVault.Caching;
+using IndieVault.DTOs;
+using IndieVault.Helpers;
 using IndieVault.Models;
 using IndieVault.Repositories.Interfaces;
 using IndieVault.Services.Interfaces;
 using IndieVault.Services.Interfaces.ExternalApis;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace IndieVault.Services.Implementations.ExternalApis
 {
@@ -17,9 +20,11 @@ namespace IndieVault.Services.Implementations.ExternalApis
         private readonly IGenreRepository _genreRepository;
         private readonly IEngineRepository _engineRepository;
         private readonly UserManager<ApplicationUser> _userManager;
-        public RawgApiService(HttpClient httpclient, ILogger<RawgApiService> logger, IConfiguration configuration, 
-            IGameService gameService, IGameRepository gameRepository, IGenreRepository genreRepository, 
-            IEngineRepository engineRepository, UserManager<ApplicationUser> userManager)
+        private readonly IMemoryCache _memoryCache;
+
+        public RawgApiService(HttpClient httpclient, ILogger<RawgApiService> logger, IConfiguration configuration,
+            IGameService gameService, IGameRepository gameRepository, IGenreRepository genreRepository,
+            IEngineRepository engineRepository, UserManager<ApplicationUser> userManager, IMemoryCache memoryCache)
         {
             _httpclient = httpclient;
             _logger = logger;
@@ -29,31 +34,32 @@ namespace IndieVault.Services.Implementations.ExternalApis
             _genreRepository = genreRepository;
             _engineRepository = engineRepository;
             _userManager = userManager;
+            _memoryCache = memoryCache;
         }
+
         private string GetApiKey()
         {
             return _configuration["RawgApi:Key"] ?? throw new InvalidOperationException("RAWG API key is not configured.");
         }
 
-        // <summary>
-        // Maps a RawgGameDto to a RawgGameUploadDto for creating a new game in the system.
-        // This method extracts necessary information from the RawgGameDto and fills in the required fields for creating a game, including handling genres, engines, and assigning a developer.
-        // </summary>
-        private async Task<RawgGameUploadDto> MapRawgGameToCreateDtoAsync(RawgGameDto rawgGameDto)
+        // Maps a RAWG game to the DTO used to create a game in IndieVault: first genre (or Uncategorized),
+        // the Unknown engine, the admin as developer and the game's store page as download link.
+        private async Task<RawgGameUploadDto> MapRawgGameToCreateDtoAsync(RawgGameDto rawgGameDto, CancellationToken cancellationToken)
         {
-
             var genreName = rawgGameDto.Genres.FirstOrDefault()?.Name; // Get the name of the first genre, if available
 
             // Try to find the genre by name, if not found, fallback to "Uncategorized". If "Uncategorized" is also not found, throw an exception.
-            var genre = (genreName != null ? await _genreRepository.GetGenreByNameAsync(genreName) : null)
-            ?? await _genreRepository.GetGenreByNameAsync("Uncategorized")
-            ?? throw new InvalidOperationException("Uncategorized genre not found.");
+            var genre = (genreName != null ? await _genreRepository.GetGenreByNameAsync(genreName, cancellationToken) : null)
+                ?? await _genreRepository.GetGenreByNameAsync("Uncategorized", cancellationToken)
+                ?? throw new InvalidOperationException("Uncategorized genre not found.");
 
-            var engine = await _engineRepository.GetEngineByNameAsync("Unknown"); // Since RAWG doesn't provide engine information, we can assign a default "Unknown" engine. 
+            // RAWG doesn't provide engine information, so imported games get the default "Unknown" engine
+            var engine = await _engineRepository.GetEngineByNameAsync("Unknown", cancellationToken);
 
-            var admin = await _userManager.GetUsersInRoleAsync("Admin"); // Assign "Admin" user as developer for imported games. 
+            var admin = await _userManager.GetUsersInRoleAsync("Admin"); // Imported games belong to the admin
 
-            var domain = rawgGameDto.Stores.FirstOrDefault()?.Store?.Domain;
+            // The games list only has the store's home page. The nested stores endpoint has the game's own page.
+            var storeUrl = await FetchGameStoreUrlAsync(rawgGameDto.ExternalApiId, cancellationToken);
 
             return new RawgGameUploadDto
             {
@@ -61,76 +67,134 @@ namespace IndieVault.Services.Implementations.ExternalApis
                 DeveloperId = admin.FirstOrDefault()?.Id ?? throw new InvalidOperationException("No admin user found to assign as developer for the imported game."),
                 ReleaseDate = rawgGameDto.ReleaseDate,
                 Price = 0,
-                DownloadLink = domain != null ? $"https://{domain}" : null,
+                DownloadLink = storeUrl,
                 CoverImagePath = rawgGameDto.CoverImage,
                 ExternalApiId = rawgGameDto.ExternalApiId,
                 ExternalApiSource = "RAWG",
                 IsFromExternalApi = true,
                 Description = "Imported from RAWG API. No description available. ",
                 EngineId = engine!.Id,
-                GenreId = genre?.Id ?? throw new InvalidOperationException("No genre found for the imported game.")
+                GenreId = genre.Id
             };
         }
 
-        public async Task<IEnumerable<RawgGameDto>> FetchGamesFromApiAsync(int count)
+        public async Task<IEnumerable<RawgGameDto>> FetchGamesFromApiAsync(int count, CancellationToken cancellationToken = default)
         {
-            // Fetch games from RAWG API
             var apiKey = GetApiKey();
 
             // RAWG API endpoint for fetching games with pagination and ordering by rating
-            var response = await _httpclient.GetAsync($"games?key={apiKey}&page_size={count}&ordering=-rating");
+            var response = await _httpclient.GetAsync($"games?key={apiKey}&page_size={count}&ordering=-rating", cancellationToken);
 
-            // Check if the response is successful
             if (!response.IsSuccessStatusCode)
             {
                 _logger.LogError("Failed to fetch games from RAWG API. Status Code: {StatusCode}", response.StatusCode);
-                // Return an empty list if the API call fails
                 return Enumerable.Empty<RawgGameDto>();
             }
 
-            // Read and deserialize the response content into the RawgApiResponseDto
-            var result = await response.Content.ReadFromJsonAsync<RawgApiResponseDto>();
+            var result = await response.Content.ReadFromJsonAsync<RawgApiResponseDto>(cancellationToken);
 
-            // Return the list of games from the API response, or an empty list if the result is null
             return result?.Results ?? Enumerable.Empty<RawgGameDto>();
         }
 
-        public async Task<int> SynchronizeGamesFromApiAsync()
+        public async Task<string?> FetchGameStoreUrlAsync(int externalApiId, CancellationToken cancellationToken = default)
         {
+            var apiKey = GetApiKey();
+
+            try
+            {
+                var response = await _httpclient.GetAsync($"games/{externalApiId}/stores?key={apiKey}", cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Failed to fetch stores for RAWG game {ExternalApiId}. Status Code: {StatusCode}", externalApiId, response.StatusCode);
+                    return null;
+                }
+
+                var result = await response.Content.ReadFromJsonAsync<RawgGameStoresResponseDto>(cancellationToken);
+
+                // First store that has a usable link
+                return result?.Results
+                    .Select(store => DownloadLinkHelper.Normalize(store.Url))
+                    .FirstOrDefault(url => url != null);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException || !cancellationToken.IsCancellationRequested)
+            {
+                // One game without a link must not stop the whole sync
+                _logger.LogWarning(ex, "Error fetching stores for RAWG game {ExternalApiId}", externalApiId);
+                return null;
+            }
+        }
+
+        public async Task<RawgSyncResultDto> SynchronizeGamesFromApiAsync(CancellationToken cancellationToken = default)
+        {
+            var result = new RawgSyncResultDto();
+
             try
             {
                 _logger.LogInformation("Starting synchronization of games from RAWG API.");
-                var apiGames = await FetchGamesFromApiAsync(30);
-                int syncedCount = 0;
+                var apiGames = await FetchGamesFromApiAsync(30, cancellationToken);
 
                 foreach (var apiGame in apiGames)
                 {
-                    var existingGame = await _gameRepository.GameExistsByTitleOrExternalIdAsync(apiGame.Title, apiGame.ExternalApiId);
+                    var importedGame = await _gameRepository.GetGameByExternalApiIdAsync(apiGame.ExternalApiId, cancellationToken);
+                    if (importedGame != null)
+                    {
+                        // Imported before: only repair its download link if it is missing or just a store home page
+                        if (await RepairDownloadLinkAsync(importedGame, cancellationToken))
+                        {
+                            result.LinksUpdated++;
+                        }
+                        continue;
+                    }
+
+                    var existingGame = await _gameRepository.GameExistsByTitleOrExternalIdAsync(apiGame.Title, apiGame.ExternalApiId, cancellationToken);
                     if (!existingGame)
                     {
-                        var dto = await MapRawgGameToCreateDtoAsync(apiGame);
-                        var result = await _gameService.CreateGameFromApiAsync(dto);
-                        if (result) 
-                        { 
-                            syncedCount++;
+                        var dto = await MapRawgGameToCreateDtoAsync(apiGame, cancellationToken);
+                        if (await _gameService.CreateGameFromApiAsync(dto, cancellationToken))
+                        {
+                            result.Imported++;
                         }
                     }
                 }
-                _logger.LogInformation("Completed synchronization of games from RAWG API. Total games synchronized: {SyncedCount}", syncedCount);
-                
-                return syncedCount;
+
+                _logger.LogInformation("Completed synchronization of games from RAWG API. Imported: {Imported}, links updated: {LinksUpdated}",
+                    result.Imported, result.LinksUpdated);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP error during RAWG API sync");
-                return 0; // Return 0 to indicate that no games were synchronized due to the error)
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error during RAWG API sync");
-                return 0;
             }
+
+            return result;
         }
 
+        private async Task<bool> RepairDownloadLinkAsync(Game game, CancellationToken cancellationToken)
+        {
+            if (game.ExternalApiId == null || DownloadLinkHelper.IsStorePage(game.DownloadLink))
+            {
+                return false;
+            }
+
+            var storeUrl = await FetchGameStoreUrlAsync(game.ExternalApiId.Value, cancellationToken);
+            if (storeUrl == null || storeUrl == game.DownloadLink)
+            {
+                return false;
+            }
+
+            game.DownloadLink = storeUrl;
+            await _gameRepository.UpdateAsync(game, cancellationToken);
+            _memoryCache.Remove(CacheKeys.GameDetails(game.Id));
+            _logger.LogInformation("Updated download link for game {GameId} from RAWG stores", game.Id);
+            return true;
+        }
     }
 }

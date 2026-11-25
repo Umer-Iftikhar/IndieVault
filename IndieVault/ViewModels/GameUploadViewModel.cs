@@ -1,4 +1,4 @@
-﻿using IndieVault.DTOs;
+using IndieVault.DTOs;
 using System.ComponentModel.DataAnnotations;
 
 
@@ -33,6 +33,8 @@ namespace IndieVault.ViewModels
         public List<string> SelectedPlatforms { get; set; } = new();
 
         [Required]
+        [Url(ErrorMessage = "Enter a full link, for example https://example.com/my-game.")]
+        [Display(Name = "Download link")]
         public string DownloadLink { get; set; } = string.Empty;
 
         [Required]
